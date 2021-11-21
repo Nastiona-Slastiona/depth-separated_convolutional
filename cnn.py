@@ -116,11 +116,12 @@ class model(object):
             train_y = train_y[batch_idx]
 
             num_batches = int(m / small_batch_size)
+            print("\nEpoch: ", it)
             for batch in range(num_batches):
 
                 x_batch = train_x[batch*small_batch_size: (batch+1)*small_batch_size]
                 y_batch = train_y[batch*small_batch_size: (batch+1)*small_batch_size]
-                print("Starting batch\t", batch, "\t Epoch:\t", it)
+                # print("Starting batch\t", batch, "\t Epoch:\t", it)
                 self.model.train_on_batch(x_batch, y_batch)
 
             if it % print_interval == 0:

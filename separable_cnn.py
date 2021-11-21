@@ -92,7 +92,7 @@ def cnn(num_genres=10, input_shape=(64, 173, 1)):
     model.add(Dense(num_genres, activation='softmax'))
     model.compile(loss=keras.losses.categorical_crossentropy,
                   optimizer=tf.keras.optimizers.Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0.0),
-                  metrics=['accuracy'])
+                  metrics=[metric])
     # model.summary()
     return(model)
 
@@ -121,11 +121,12 @@ class model(object):
             train_y = train_y[batch_idx]
 
             num_batches = int(m / small_batch_size)
+            print("\nEpoch: ", it)
             for batch in range(num_batches):
 
                 x_batch = train_x[batch*small_batch_size: (batch+1)*small_batch_size]
                 y_batch = train_y[batch*small_batch_size: (batch+1)*small_batch_size]
-                print("Starting batch\t", batch, "\t Epoch:\t", it)
+                # print("Starting batch\t", batch, "\t Epoch:\t", it)
                 self.model.train_on_batch(x_batch, y_batch)
 
             if it % print_interval == 0:
@@ -137,7 +138,7 @@ class model(object):
                 print("\nTraining loss: %f    \t Validation loss: %f    \t Testing Loss: %f \n" %
                       (training_accuracy[0], validation_accuracy[0], testing_accuracy[0]))
 
-            if (validation_accuracy[1] > .81):
+            if (validation_accuracy[1] > .70):
                 print("Saving confusion data...")
                 model_name = "model" + str(100*validation_accuracy[1]) + str(100*testing_accuracy[1]) + ".h5"
                 self.model.save(model_name)
