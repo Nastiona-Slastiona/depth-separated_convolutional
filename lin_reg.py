@@ -1,0 +1,114 @@
+import tensorflow as tf
+import numpy as np
+import random
+from tqdm import tqdm, trange
+
+
+training = np.load('gtzan/gtzan_tr.npy')
+data_tr = np.delete(training, -1, 1)
+label_tr = training[:, -1]
+
+test = np.load('gtzan/gtzan_te.npy')
+data_te = np.delete(test, -1, 1)
+label_te = test[:, -1]
+
+cv = np.load('gtzan/gtzan_cv.npy')
+data_cv = np.delete(cv, -1, 1)
+label_cv = test[:, -1]
+
+temp = np.zeros((len(label_tr), 10))
+temp[np.arange(len(label_tr)), label_tr.astype(int)] = 1
+label_tr = temp
+temp = np.zeros((len(label_te), 10))
+temp[np.arange(len(label_te)), label_te.astype(int)] = 1
+label_te = temp
+temp = np.zeros((len(label_cv), 10))
+temp[np.arange(len(label_cv)), label_cv.astype(int)] = 1
+label_cv = temp
+del temp
+
+indices = random.sample(range(0, data_tr.shape[0]), 100)
+
+x_tr = data_tr[indices]
+y_tr = label_tr[indices]
+# general parameters
+N = x_tr.shape[0]# number of training examples
+D = x_tr.shape[1]# dimensionality of the data
+outputLayer = 10 # number of unique labels in the dataset
+
+# hyperparameters
+epoch = 100
+# hidden layers
+H1 = 2048
+H2 = 1024
+H3 = 512
+H4 = 256
+H5 = 128
+H6 = 64
+#learning rate
+lr = .0001
+
+#weigths
+W_h1 = tf.Variable(tf.random_normal((D, H1), stddev=0.01)) # mean=0.0
+W_h2 = tf.Variable(tf.random_normal((H1, H2), stddev=0.01)) # mean=0.0
+W_h3 = tf.Variable(tf.random_normal((H2, H3), stddev=0.01)) # mean=0.0
+W_h4 = tf.Variable(tf.random_normal((H3, H4), stddev=0.01)) # mean=0.0
+W_h5 = tf.Variable(tf.random_normal((H4, H5), stddev=0.01)) # mean=0.0
+W_h6 = tf.Variable(tf.random_normal((H5, H6), stddev=0.01)) # mean=0.0
+W_o = tf.Variable(tf.random_normal((H6, outputLayer), stddev=0.01)) # mean=0.0
+
+#biases
+b_h1 = tf.Variable(tf.zeros((1, H1)))
+b_h2 = tf.Variable(tf.zeros((1, H2)))
+b_h3 = tf.Variable(tf.zeros((1, H3)))
+b_h4 = tf.Variable(tf.zeros((1, H4)))
+b_h5 = tf.Variable(tf.zeros((1, H5)))
+b_h6 = tf.Variable(tf.zeros((1, H6)))
+b_o = tf.Variable(tf.zeros((1, outputLayer)))
+
+X = tf.placeholder("float", shape=[None, D])
+y = tf.placeholder("float", shape=[None, outputLayer])
+
+h1 = tf.nn.relu(tf.matmul(X, W_h1) + b_h1)
+h2 = tf.nn.relu(tf.matmul(h1, W_h2) + b_h2)
+h3 = tf.nn.relu(tf.matmul(h2, W_h3) + b_h3)
+d1 = tf.nn.dropout(h3, .5)
+h4 = tf.nn.relu(tf.matmul(d1, W_h4) + b_h4)
+h5 = tf.nn.relu(tf.matmul(h4, W_h5) + b_h5)
+h6 = tf.nn.relu(tf.matmul(h5, W_h6) + b_h6)
+d2 = tf.nn.dropout(h6, .5)
+y_hat = (tf.matmul(h6, W_o) + b_o) 
+
+loss = tf.reduce_mean(tf.nn.softmax_cross_entropy_with_logits( 
+                        labels=y, logits=y_hat)) 
+
+GD_step = tf.train.AdamOptimizer(lr).minimize(loss)
+
+sess = tf.Session()
+init = tf.global_variables_initializer()
+sess.run(init)
+
+
+with sess.as_default():
+	curr_loss = sess.run(loss, feed_dict={X: data_te, y: label_te})
+	print("The initial loss is: ", curr_loss)
+
+	nepochs = 100
+	epoch_size = int(data_tr.shape[0] / epoch)
+	for i in trange(nepochs):
+		r = np.random.permutation(data_tr.shape[0])
+		for j in trange(epoch_size):
+			indices = r[j*epoch:(j+1)*epoch]
+			x_tr = data_tr[indices] #[data[v] for v in indices]
+			y_tr = label_tr[indices] #[labels[v] for v in indices]
+
+			_, l, cur_loss = sess.run([GD_step, y_hat, loss], feed_dict={X: x_tr, y: y_tr})
+			eval_accuracy = tf.equal(tf.argmax(l, 1), tf.argmax(y_tr, 1))
+			print("Iter accuracy: ", tf.reduce_mean(tf.cast(eval_accuracy, tf.float32)).eval())
+			print("Training Loss: ", cur_loss)
+		curr_loss, pred = sess.run([loss, y_hat], feed_dict={X: data_te, y: label_te})
+		print()
+		print("The final loss is: ", curr_loss)
+		correctly_predicted = tf.equal(tf.argmax(pred, 1), tf.argmax(label_te, 1)) 
+		print('Argmax accuracy:', tf.reduce_mean(tf.cast(correctly_predicted, tf.float32)).eval())
+                 
