@@ -88,7 +88,7 @@ def cnn(num_genres=10, input_shape=(64, 173, 1)):
     model.compile(loss=keras.losses.categorical_crossentropy,
                   optimizer=tf.keras.optimizers.Adam(lr=0.001, beta_1=0.9, beta_2=0.999, epsilon=1e-08, decay=0.0),
                   metrics=[metric])
-    # model.summary()
+    model.summary()
     return(model)
 
 ###################################################################################################
@@ -107,6 +107,9 @@ class model(object):
                 test_x=None, test_y=None):
 
         m = len(train_x)
+        history = self.model.fit(train_x, train_y, batch_size=16,
+                                 validation_data=(test_x, test_y),
+                                 epochs=15)
 
         for it in range(max_iteration):
 
@@ -132,6 +135,28 @@ class model(object):
                       (training_accuracy[1], validation_accuracy[1], testing_accuracy[1]))
                 print("\nTraining loss: %f    \t Validation loss: %f    \t Testing Loss: %f \n" %
                       (training_accuracy[0], validation_accuracy[0], testing_accuracy[0]))
+
+                if it == 15:
+                    train_loss = history.history['loss']
+                    test_loss = history.history['val_loss']
+
+                    # Set figure size.
+                    plt.figure(figsize=(12, 8))
+
+                    # Generate line plot of training, testing loss over epochs.
+                    plt.plot(train_loss, label='Training Loss', color='blue')
+                    plt.plot(test_loss, label='Testing Loss', color='red')
+
+                    # Set title
+                    plt.title('Training and Testing Loss by Epoch', fontsize=25)
+                    plt.xlabel('Epoch', fontsize=18)
+                    plt.ylabel('Categorical Crossentropy', fontsize=18)
+                    plt.xticks(range(1, 16), range(1, 16))
+
+                    plt.legend(fontsize=18)
+                    plt.show()
+                    plt.savefig('ProgressTableCnn')
+
 
             if (validation_accuracy[1] > .81):
                 print("Saving confusion data...")
